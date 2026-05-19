@@ -56,6 +56,9 @@ fun BleProvisioningScreen(
         val allGranted = permissionsResult.values.all { it }
         if (allGranted) {
             viewModel.startScan()
+        } else {
+            val denied = permissionsResult.filter { !it.value }.keys
+            android.util.Log.w("BleProvisioning", "权限被拒绝: $denied")
         }
     }
     
