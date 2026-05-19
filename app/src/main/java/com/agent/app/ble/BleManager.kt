@@ -341,27 +341,55 @@ class BleManager(private val context: Context) {
             characteristic: BluetoothGattCharacteristic
         ) {
             val value = characteristic.value
-            if (value != null && value.isNotEmpty()) {
-                val status = value[0].toInt()
-                mainHandler.post {
-                    when (status) {
-                        0 -> {
-                            _statusMessage.value = "配网进行中..."
-                        }
-                        1 -> {
-                            _statusMessage.value = "配网成功！"
-                            _provisioningStatus.value = ProvisioningStatus.SUCCESS
-                            disconnect()
-                        }
-                        2 -> {
-                            _statusMessage.value = "配网失败"
-                            _provisioningStatus.value = ProvisioningStatus.FAILED
-                            disconnect()
-                        }
+            if (value == null || value.isEmpty()) return
+            
+            val json = String(value, Charsets.UTF_8)
+            Log.d(TAG, "收到通知: $json")
+            
+            mainHandler.post {
+                try {
+                    // Parse JSON response: {"status":"ok|error","msg":"...","network":bool,"ip":"..."}
+                    val statusOk = json.contains("\"status\":\"ok\"")
+                    val msg = extractJsonString(json, "msg") ?: ""
+                    val network = json.contains("\"network\":true")
+                    val ip = extractJsonString(json, "ip")
+                    
+                    if (statusOk && msg.contains("wifi connected")) {
+                        _statusMessage.value = "配网成功！${if (ip != null) " IP: $ip" else ""}"
+                        _provisioningStatus.value = ProvisioningStatus.SUCCESS
+                    } else if (statusOk && msg == "pong") {
+                        _statusMessage.value = "设备连接正常"
+                    } else if (statusOk && ip != null) {
+                        _statusMessage.value = "设备已联网 IP: $ip"
+                        _provisioningStatus.value = ProvisioningStatus.SUCCESS
+                    } else if (!statusOk) {
+                        _statusMessage.value = "失败: $msg"
+                        _provisioningStatus.value = ProvisioningStatus.FAILED
+                    } else {
+                        _statusMessage.value = msg.ifEmpty { json }
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "解析响应失败: ${e.message}")
+                    _statusMessage.value = json
                 }
             }
         }
+    }
+    
+    /** Extract a string value from simple JSON */
+    private fun extractJsonString(json: String, key: String): String? {
+        val pattern = "\"$key\":\"" 
+        var idx = json.indexOf(pattern)
+        if (idx < 0) {
+            // Try with space
+            idx = json.indexOf("\"$key\": \"")
+            if (idx < 0) return null
+            idx += key.length + 5
+        } else {
+            idx += pattern.length
+        }
+        val end = json.indexOf('"', idx)
+        return if (end > idx) json.substring(idx, end) else null
     }
     
     /**
