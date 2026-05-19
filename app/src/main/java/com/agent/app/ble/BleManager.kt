@@ -23,11 +23,15 @@ class BleManager(private val context: Context) {
     
     companion object {
         private const val TAG = "BleManager"
-        // BLE服务UUID
-        val SERVICE_UUID: UUID = UUID.fromString("0000fe55-0000-1000-8000-00805f9b34fb")
-        val CHAR_SSID: UUID = UUID.fromString("0000fe56-0000-1000-8000-00805f9b34fb")
-        val CHAR_PASSWORD: UUID = UUID.fromString("0000fe57-0000-1000-8000-00805f9b34fb")
-        val CHAR_STATUS: UUID = UUID.fromString("0000fe58-0000-1000-8000-00805f9b34fb")
+        // Nordic UART Service (NUS) UUIDs - matches watch ble_gatt.c
+        val SERVICE_UUID: UUID = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
+        val CHAR_RX: UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e")  // Write to watch
+        val CHAR_TX: UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e")  // Notify from watch
+        
+        // Legacy aliases for compatibility
+        val CHAR_SSID: UUID = CHAR_RX
+        val CHAR_PASSWORD: UUID = CHAR_RX
+        val CHAR_STATUS: UUID = CHAR_TX
         
         // 扫描过滤器前缀
         const val DEVICE_PREFIX = "Agent-"
@@ -163,7 +167,7 @@ class BleManager(private val context: Context) {
     }
     
     /**
-     * 发送WiFi凭据
+     * 发送WiFi凭据 - 通过NUS RX Characteristic写入JSON
      */
     private fun sendWifiCredentials(ssid: String, password: String) {
         _provisioningStatus.value = ProvisioningStatus.SENDING_WIFI
@@ -171,21 +175,31 @@ class BleManager(private val context: Context) {
         
         try {
             val service = bluetoothGatt?.getService(SERVICE_UUID)
-            val ssidChar = service?.getCharacteristic(CHAR_SSID)
-            val passwordChar = service?.getCharacteristic(CHAR_PASSWORD)
+            if (service == null) {
+                Log.e(TAG, "未找到NUS服务: $SERVICE_UUID")
+                _statusMessage.value = "未找到BLE数据服务"
+                _provisioningStatus.value = ProvisioningStatus.FAILED
+                return
+            }
             
-            if (ssidChar != null && passwordChar != null) {
-                // 写入SSID
-                ssidChar.value = ssid.toByteArray(Charsets.UTF_8)
-                bluetoothGatt?.writeCharacteristic(ssidChar)
-                
-                // 延迟后写入密码
-                mainHandler.postDelayed({
-                    passwordChar.value = password.toByteArray(Charsets.UTF_8)
-                    bluetoothGatt?.writeCharacteristic(passwordChar)
-                }, 500)
+            val rxChar = service.getCharacteristic(CHAR_RX)
+            if (rxChar == null) {
+                Log.e(TAG, "未找到RX特征: $CHAR_RX")
+                _statusMessage.value = "未找到写入特征"
+                _provisioningStatus.value = ProvisioningStatus.FAILED
+                return
+            }
+            
+            // 发送WiFi配置JSON
+            val json = """{"cmd":"wifi_config","ssid":"$ssid","password":"$password"}"""
+            rxChar.value = json.toByteArray(Charsets.UTF_8)
+            val success = bluetoothGatt?.writeCharacteristic(rxChar) ?: false
+            Log.d(TAG, "写入WiFi凭据: success=$success, len=${json.length}")
+            
+            if (success) {
+                _statusMessage.value = "WiFi凭据已发送，等待设备响应..."
             } else {
-                _statusMessage.value = "未找到WiFi服务特征"
+                _statusMessage.value = "写入失败"
                 _provisioningStatus.value = ProvisioningStatus.FAILED
             }
         } catch (e: Exception) {
@@ -244,35 +258,69 @@ class BleManager(private val context: Context) {
      */
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            Log.d(TAG, "onConnectionStateChange: status=$status, newState=$newState")
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     mainHandler.post {
                         _provisioningStatus.value = ProvisioningStatus.CONNECTED
                         _statusMessage.value = "已连接，正在发现服务..."
-                        gatt.discoverServices()
                     }
+                    gatt.discoverServices()
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     mainHandler.post {
-                        _statusMessage.value = "连接已断开"
+                        _statusMessage.value = "连接已断开 (status=$status)"
                         _provisioningStatus.value = ProvisioningStatus.IDLE
                     }
+                    gatt.close()
                 }
             }
         }
         
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            Log.d(TAG, "onServicesDiscovered: status=$status")
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // 服务发现成功，启用Status通知
+                val services = gatt.services
+                Log.d(TAG, "发现 ${services.size} 个服务:")
+                services.forEach { service ->
+                    Log.d(TAG, "  服务: ${service.uuid}")
+                    service.characteristics.forEach { char ->
+                        Log.d(TAG, "    特征: ${char.uuid}")
+                    }
+                }
+                
                 val service = gatt.getService(SERVICE_UUID)
-                val statusChar = service?.getCharacteristic(CHAR_STATUS)
+                if (service == null) {
+                    Log.w(TAG, "未找到目标服务 $SERVICE_UUID")
+                    mainHandler.post {
+                        _statusMessage.value = "设备不支持配网服务"
+                        _provisioningStatus.value = ProvisioningStatus.FAILED
+                    }
+                    return
+                }
+                
+                val statusChar = service.getCharacteristic(CHAR_TX)
                 if (statusChar != null) {
                     gatt.setCharacteristicNotification(statusChar, true)
-                    // 通知已启用，可以发送WiFi凭据了
+                    // 写入CCCD descriptor启用通知
+                    val descriptor = statusChar.getDescriptor(
+                        UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                    )
+                    if (descriptor != null) {
+                        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        gatt.writeDescriptor(descriptor)
+                    }
+                    Log.d(TAG, "已启用 TX 通知")
+                    mainHandler.post {
+                        _statusMessage.value = "服务已就绪，可以发送数据"
+                        _provisioningStatus.value = ProvisioningStatus.CONNECTED
+                    }
+                } else {
+                    Log.w(TAG, "未找到 TX 特征")
                 }
             } else {
                 mainHandler.post {
-                    _statusMessage.value = "服务发现失败"
+                    _statusMessage.value = "服务发现失败 (status=$status)"
                     _provisioningStatus.value = ProvisioningStatus.FAILED
                 }
             }
