@@ -31,6 +31,8 @@ class BleManager(private val context: Context) {
         
         // 扫描过滤器前缀
         const val DEVICE_PREFIX = "Agent-"
+        // 目标设备MAC地址
+        const val TARGET_DEVICE_ADDRESS = "D0:C1:BF:B0:DF:F4"
     }
     
     private val bluetoothManager: BluetoothManager? = 
@@ -139,15 +141,10 @@ class BleManager(private val context: Context) {
      * 连接到设备并进行配网
      */
     fun connectAndProvision(ssid: String, password: String) {
-        if (devices.isEmpty()) {
+        // 优先连接目标设备，其次连接扫描列表中的第一个
+        val device = devices[TARGET_DEVICE_ADDRESS] ?: devices.values.firstOrNull()
+        if (device == null) {
             _statusMessage.value = "没有找到设备"
-            _provisioningStatus.value = ProvisioningStatus.FAILED
-            return
-        }
-        
-        // 连接第一个设备
-        val device = devices.values.firstOrNull() ?: run {
-            _statusMessage.value = "没有找到可连接的设备"
             _provisioningStatus.value = ProvisioningStatus.FAILED
             return
         }

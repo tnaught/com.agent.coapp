@@ -216,6 +216,7 @@ fun BleProvisioningScreen(
 /**
  * 设备列表项
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DeviceItem(
     device: BleDevice,
