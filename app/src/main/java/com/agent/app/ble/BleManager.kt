@@ -73,25 +73,46 @@ class BleManager(private val context: Context) {
     fun startScan() {
         if (isScanning) return
         
+        if (!isBluetoothEnabled()) {
+            Log.w(TAG, "蓝牙未开启，无法扫描")
+            _statusMessage.value = "请先开启蓝牙"
+            return
+        }
+        
         devices.clear()
         _scanResults.value = emptyList()
         _provisioningStatus.value = ProvisioningStatus.SCANNING
+        _statusMessage.value = "正在扫描..."
         
         try {
             bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+            if (bluetoothLeScanner == null) {
+                Log.e(TAG, "无法获取 BLE Scanner")
+                _statusMessage.value = "BLE Scanner 不可用"
+                _provisioningStatus.value = ProvisioningStatus.IDLE
+                return
+            }
+            
             val scanSettings = ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build()
             
             bluetoothLeScanner?.startScan(null, scanSettings, scanCallback)
             isScanning = true
+            Log.d(TAG, "BLE 扫描已启动")
             
-            // 5秒后自动停止扫描
+            // 10秒后自动停止扫描
             mainHandler.postDelayed({
                 stopScan()
-            }, 5000)
+                if (devices.isEmpty()) {
+                    _statusMessage.value = "未发现设备，请确认设备已开启并在附近"
+                } else {
+                    _statusMessage.value = "扫描完成，发现 ${devices.size} 个设备"
+                }
+            }, 10000)
         } catch (e: Exception) {
-            Log.e(TAG, "扫描失败: ${e.message}")
+            Log.e(TAG, "扫描失败: ${e.message}", e)
+            _statusMessage.value = "扫描失败: ${e.message}"
             _provisioningStatus.value = ProvisioningStatus.IDLE
         }
     }
@@ -195,20 +216,26 @@ class BleManager(private val context: Context) {
      */
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val deviceName = result.device.name ?: return
-            if (!deviceName.startsWith(DEVICE_PREFIX)) return
+            val deviceName = result.device.name
+            val address = result.device.address
+            
+            Log.d(TAG, "发现设备: name=$deviceName, address=$address, rssi=${result.rssi}")
+            
+            // 显示所有设备（含无名设备），方便排查
+            val displayName = if (deviceName.isNullOrBlank()) "Unknown" else deviceName
             
             val bleDevice = BleDevice(
-                name = deviceName,
-                address = result.device.address,
+                name = displayName,
+                address = address,
                 rssi = result.rssi
             )
-            devices[result.device.address] = bleDevice
-            _scanResults.value = devices.values.toList()
+            devices[address] = bleDevice
+            _scanResults.value = devices.values.toList().sortedByDescending { it.rssi }
         }
         
         override fun onScanFailed(errorCode: Int) {
-            Log.e(TAG, "扫描失败: $errorCode")
+            Log.e(TAG, "扫描失败, errorCode=$errorCode")
+            _statusMessage.value = "扫描失败 (错误码: $errorCode)"
             _provisioningStatus.value = ProvisioningStatus.IDLE
         }
     }
