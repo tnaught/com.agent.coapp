@@ -218,8 +218,10 @@ class BleManager(private val context: Context) {
             
             Log.d(TAG, "发现设备: name=$deviceName, address=$address, rssi=${result.rssi}")
             
-            // 显示所有设备（含无名设备），方便排查
-            val displayName = if (deviceName.isNullOrBlank()) "Unknown" else deviceName
+            // 只显示目标设备
+            if (!address.equals(TARGET_DEVICE_ADDRESS, ignoreCase = true)) return
+            
+            val displayName = if (deviceName.isNullOrBlank()) "XiaomiWatch S5" else deviceName
             
             val bleDevice = BleDevice(
                 name = displayName,
