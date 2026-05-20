@@ -56,6 +56,9 @@ class BleManager(private val context: Context) {
     private val _statusMessage = MutableStateFlow("")
     val statusMessage: StateFlow<String> = _statusMessage
     
+    private val _deviceIp = MutableStateFlow("")
+    val deviceIp: StateFlow<String> = _deviceIp
+    
     private var isScanning = false
     private val devices = mutableMapOf<String, BleDevice>()
     
@@ -273,6 +276,21 @@ class BleManager(private val context: Context) {
     }
     
     /**
+     * 发送任意JSON命令到设备
+     */
+    fun sendCommand(json: String) {
+        try {
+            val service = bluetoothGatt?.getService(SERVICE_UUID) ?: return
+            val rxChar = service.getCharacteristic(CHAR_RX) ?: return
+            rxChar.value = json.toByteArray(Charsets.UTF_8)
+            bluetoothGatt?.writeCharacteristic(rxChar)
+            Log.d(TAG, "发送命令: $json")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送命令失败: ${e.message}")
+        }
+    }
+    
+    /**
      * 断开连接
      */
     fun disconnect() {
@@ -438,12 +456,17 @@ class BleManager(private val context: Context) {
                     val ip = extractJsonString(json, "ip")
                     
                     if (statusOk && msg.contains("wifi connected")) {
-                        _statusMessage.value = "配网成功！${if (ip != null) " IP: $ip" else ""}"
+                        _statusMessage.value = "配网成功！正在获取设备IP..."
                         _provisioningStatus.value = ProvisioningStatus.SUCCESS
+                        // 自动查询设备IP
+                        mainHandler.postDelayed({
+                            sendCommand("{\"cmd\":\"status\"}")
+                        }, 1000)
                     } else if (statusOk && msg == "pong") {
                         _statusMessage.value = "设备连接正常"
                     } else if (statusOk && ip != null) {
-                        _statusMessage.value = "设备已联网 IP: $ip"
+                        _deviceIp.value = ip
+                        _statusMessage.value = "设备IP: $ip"
                         _provisioningStatus.value = ProvisioningStatus.SUCCESS
                     } else if (!statusOk) {
                         _statusMessage.value = "失败: $msg"
