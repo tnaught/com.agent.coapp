@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.agent.app.ble.BleManager
 import com.agent.app.data.BleDevice
 import com.agent.app.data.ProvisioningStatus
+import com.agent.app.repository.ConfigRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 class ProvisioningViewModel(application: Application) : AndroidViewModel(application) {
     
     private val bleManager = BleManager(application)
+    private val configRepository = ConfigRepository(application)
     
     val scanResults: StateFlow<List<BleDevice>> = bleManager.scanResults
     val provisioningStatus: StateFlow<ProvisioningStatus> = bleManager.provisioningStatus
@@ -26,6 +28,14 @@ class ProvisioningViewModel(application: Application) : AndroidViewModel(applica
     
     init {
         checkBluetoothState()
+        // 配网获取到IP后自动保存到配置
+        viewModelScope.launch {
+            bleManager.deviceIp.collect { ip ->
+                if (ip.isNotEmpty()) {
+                    configRepository.updateDeviceIp(ip)
+                }
+            }
+        }
     }
     
     /**
