@@ -64,12 +64,12 @@ class ConfigViewModel(application: Application) : AndroidViewModel(application) 
             val result = deviceRepository.getConfig(config.deviceIp, config.devicePort)
             result.onSuccess { response ->
                 val updatedConfig = config.copy(
-                    llmApiKey = response.llm_api_key ?: "",
-                    llmBaseUrl = response.llm_base_url ?: "https://api.openai.com/v1",
-                    llmModel = response.llm_model ?: "gpt-4",
-                    searchApiKey = response.search_api_key ?: "",
-                    asrApiKey = response.asr_api_key ?: "",
-                    ttsApiKey = response.tts_api_key ?: ""
+                    llmApiKey = response.llm_api_key ?: config.llmApiKey,
+                    llmBaseUrl = response.llm_base_url ?: config.llmBaseUrl,
+                    llmModel = response.llm_model ?: config.llmModel,
+                    tavilyKey = response.search_api_key ?: config.tavilyKey,
+                    volcKey = response.asr_api_key ?: config.volcKey,
+                    volcAsrToken = response.tts_api_key ?: config.volcAsrToken
                 )
                 configRepository.saveConfig(updatedConfig)
                 _syncResult.value = SyncResult.Success("配置已从设备同步")
@@ -101,9 +101,9 @@ class ConfigViewModel(application: Application) : AndroidViewModel(application) 
                 llmApiKey = config.llmApiKey,
                 llmBaseUrl = config.llmBaseUrl,
                 llmModel = config.llmModel,
-                searchApiKey = config.searchApiKey,
-                asrApiKey = config.asrApiKey,
-                ttsApiKey = config.ttsApiKey
+                searchApiKey = config.tavilyKey,
+                asrApiKey = config.volcKey,
+                ttsApiKey = config.volcAsrToken
             )
             
             result.onSuccess {

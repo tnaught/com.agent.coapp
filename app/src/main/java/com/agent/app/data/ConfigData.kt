@@ -4,12 +4,18 @@ package com.agent.app.data
  * Agent配置数据类
  */
 data class AgentConfig(
+    // LLM 配置
+    val llmBaseUrl: String = "https://api.xiaomimimo.com/v1",
+    val llmModel: String = "mimo-v2.5",
     val llmApiKey: String = "",
-    val llmBaseUrl: String = "https://api.openai.com/v1",
-    val llmModel: String = "gpt-4",
-    val searchApiKey: String = "",
-    val asrApiKey: String = "",
-    val ttsApiKey: String = "",
+    // Tavily 搜索
+    val tavilyKey: String = "",
+    // 火山引擎 ASR
+    val volcKey: String = "",
+    val volcAsrAppId: String = "",
+    val volcAsrToken: String = "",
+    val volcAsrCluster: String = "volcengine_streaming_common",
+    // 设备连接
     val deviceIp: String = "",
     val devicePort: Int = 8080
 )

@@ -21,9 +21,11 @@ class ConfigRepository(private val context: Context) {
         private val KEY_LLM_API_KEY = stringPreferencesKey("llm_api_key")
         private val KEY_LLM_BASE_URL = stringPreferencesKey("llm_base_url")
         private val KEY_LLM_MODEL = stringPreferencesKey("llm_model")
-        private val KEY_SEARCH_API_KEY = stringPreferencesKey("search_api_key")
-        private val KEY_ASR_API_KEY = stringPreferencesKey("asr_api_key")
-        private val KEY_TTS_API_KEY = stringPreferencesKey("tts_api_key")
+        private val KEY_TAVILY_KEY = stringPreferencesKey("tavily_key")
+        private val KEY_VOLC_KEY = stringPreferencesKey("volc_key")
+        private val KEY_VOLC_ASR_APP_ID = stringPreferencesKey("volc_asr_app_id")
+        private val KEY_VOLC_ASR_TOKEN = stringPreferencesKey("volc_asr_token")
+        private val KEY_VOLC_ASR_CLUSTER = stringPreferencesKey("volc_asr_cluster")
         private val KEY_DEVICE_IP = stringPreferencesKey("device_ip")
         private val KEY_DEVICE_PORT = intPreferencesKey("device_port")
     }
@@ -33,12 +35,14 @@ class ConfigRepository(private val context: Context) {
      */
     val configFlow: Flow<AgentConfig> = context.dataStore.data.map { preferences ->
         AgentConfig(
+            llmBaseUrl = preferences[KEY_LLM_BASE_URL] ?: "https://api.xiaomimimo.com/v1",
+            llmModel = preferences[KEY_LLM_MODEL] ?: "mimo-v2.5",
             llmApiKey = preferences[KEY_LLM_API_KEY] ?: "",
-            llmBaseUrl = preferences[KEY_LLM_BASE_URL] ?: "https://api.openai.com/v1",
-            llmModel = preferences[KEY_LLM_MODEL] ?: "gpt-4",
-            searchApiKey = preferences[KEY_SEARCH_API_KEY] ?: "",
-            asrApiKey = preferences[KEY_ASR_API_KEY] ?: "",
-            ttsApiKey = preferences[KEY_TTS_API_KEY] ?: "",
+            tavilyKey = preferences[KEY_TAVILY_KEY] ?: "",
+            volcKey = preferences[KEY_VOLC_KEY] ?: "",
+            volcAsrAppId = preferences[KEY_VOLC_ASR_APP_ID] ?: "",
+            volcAsrToken = preferences[KEY_VOLC_ASR_TOKEN] ?: "",
+            volcAsrCluster = preferences[KEY_VOLC_ASR_CLUSTER] ?: "volcengine_streaming_common",
             deviceIp = preferences[KEY_DEVICE_IP] ?: "",
             devicePort = preferences[KEY_DEVICE_PORT] ?: 8080
         )
@@ -52,9 +56,11 @@ class ConfigRepository(private val context: Context) {
             preferences[KEY_LLM_API_KEY] = config.llmApiKey
             preferences[KEY_LLM_BASE_URL] = config.llmBaseUrl
             preferences[KEY_LLM_MODEL] = config.llmModel
-            preferences[KEY_SEARCH_API_KEY] = config.searchApiKey
-            preferences[KEY_ASR_API_KEY] = config.asrApiKey
-            preferences[KEY_TTS_API_KEY] = config.ttsApiKey
+            preferences[KEY_TAVILY_KEY] = config.tavilyKey
+            preferences[KEY_VOLC_KEY] = config.volcKey
+            preferences[KEY_VOLC_ASR_APP_ID] = config.volcAsrAppId
+            preferences[KEY_VOLC_ASR_TOKEN] = config.volcAsrToken
+            preferences[KEY_VOLC_ASR_CLUSTER] = config.volcAsrCluster
             preferences[KEY_DEVICE_IP] = config.deviceIp
             preferences[KEY_DEVICE_PORT] = config.devicePort
         }

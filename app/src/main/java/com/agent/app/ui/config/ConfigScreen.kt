@@ -61,23 +61,12 @@ fun ConfigScreen(
             // LLM配置
             ConfigSection(title = "LLM 配置") {
                 ConfigTextField(
-                    value = editedConfig.llmApiKey,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(llmApiKey = it)
-                        hasChanges = true
-                    },
-                    label = "API Key",
-                    isPassword = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
                     value = editedConfig.llmBaseUrl,
                     onValueChange = {
                         editedConfig = editedConfig.copy(llmBaseUrl = it)
                         hasChanges = true
                     },
-                    label = "Base URL",
-                    placeholder = "https://api.openai.com/v1"
+                    label = "Base URL"
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ConfigTextField(
@@ -86,40 +75,75 @@ fun ConfigScreen(
                         editedConfig = editedConfig.copy(llmModel = it)
                         hasChanges = true
                     },
-                    label = "模型名称",
-                    placeholder = "gpt-4"
+                    label = "模型名称"
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ConfigTextField(
+                    value = editedConfig.llmApiKey,
+                    onValueChange = {
+                        editedConfig = editedConfig.copy(llmApiKey = it)
+                        hasChanges = true
+                    },
+                    label = "LLM API Key",
+                    isPassword = true
                 )
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // API Keys
-            ConfigSection(title = "API Keys") {
+            // Tavily 搜索
+            ConfigSection(title = "Tavily 搜索") {
                 ConfigTextField(
-                    value = editedConfig.searchApiKey,
+                    value = editedConfig.tavilyKey,
                     onValueChange = {
-                        editedConfig = editedConfig.copy(searchApiKey = it)
+                        editedConfig = editedConfig.copy(tavilyKey = it)
                         hasChanges = true
                     },
-                    label = "搜索引擎 API Key"
+                    label = "Tavily API Key",
+                    isPassword = true
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 火山引擎 ASR
+            ConfigSection(title = "火山引擎 ASR") {
+                ConfigTextField(
+                    value = editedConfig.volcKey,
+                    onValueChange = {
+                        editedConfig = editedConfig.copy(volcKey = it)
+                        hasChanges = true
+                    },
+                    label = "Volc Key",
+                    isPassword = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ConfigTextField(
-                    value = editedConfig.asrApiKey,
+                    value = editedConfig.volcAsrAppId,
                     onValueChange = {
-                        editedConfig = editedConfig.copy(asrApiKey = it)
+                        editedConfig = editedConfig.copy(volcAsrAppId = it)
                         hasChanges = true
                     },
-                    label = "ASR API Key"
+                    label = "ASR App ID"
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ConfigTextField(
-                    value = editedConfig.ttsApiKey,
+                    value = editedConfig.volcAsrToken,
                     onValueChange = {
-                        editedConfig = editedConfig.copy(ttsApiKey = it)
+                        editedConfig = editedConfig.copy(volcAsrToken = it)
                         hasChanges = true
                     },
-                    label = "TTS API Key"
+                    label = "ASR Token",
+                    isPassword = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ConfigTextField(
+                    value = editedConfig.volcAsrCluster,
+                    onValueChange = {
+                        editedConfig = editedConfig.copy(volcAsrCluster = it)
+                        hasChanges = true
+                    },
+                    label = "ASR Cluster"
                 )
             }
             
