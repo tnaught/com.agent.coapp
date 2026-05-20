@@ -1,70 +1,72 @@
 package com.agent.app.ui.theme
 
 import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// 主题颜色
-private val Purple80 = Color(0xFFD0BCFF)
-private val PurpleGrey80 = Color(0xFFCCC2DC)
-private val Pink80 = Color(0xFFEFB8C8)
-
-private val Purple40 = Color(0xFF6650a4)
-private val PurpleGrey40 = Color(0xFF625b71)
-private val Pink40 = Color(0xFF7D5260)
-
-// 自定义颜色
-val AgentBlue = Color(0xFF2196F3)
-val AgentGreen = Color(0xFF4CAF50)
-val AgentOrange = Color(0xFFFF9800)
-val AgentRed = Color(0xFFF44336)
-
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    // 品牌
+    primary = Teal400,
+    onPrimary = Slate950,
+    primaryContainer = Teal800,
+    onPrimaryContainer = Teal200,
+    // 二级
+    secondary = Slate400,
+    onSecondary = Slate950,
+    secondaryContainer = Slate850,
+    onSecondaryContainer = Slate200,
+    // 三级
+    tertiary = Green400,
+    onTertiary = Slate950,
+    tertiaryContainer = Color(0xFF1A3A2A),
+    onTertiaryContainer = Green400,
+    // 错误
+    error = Red400,
+    onError = Slate950,
+    errorContainer = Color(0xFF3B1A1A),
+    onErrorContainer = Red400,
+    // 表面
+    background = Slate950,
+    onBackground = Slate200,
+    surface = Slate950,
+    onSurface = Slate200,
+    surfaceVariant = Slate900,
+    onSurfaceVariant = Slate400,
+    // 轮廓
+    outline = Slate800,
+    outlineVariant = Color(0xFF2D3A4F),
+    // 反色
+    inverseSurface = Slate200,
+    inverseOnSurface = Slate950,
+    inversePrimary = Teal800,
 )
 
 @Composable
 fun AndroidAgentAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = DarkColorScheme
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            window.statusBarColor = Slate950.toArgb()
+            window.navigationBarColor = Slate950.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = AgentTypography,
+        shapes = AgentShapes,
         content = content
     )
 }

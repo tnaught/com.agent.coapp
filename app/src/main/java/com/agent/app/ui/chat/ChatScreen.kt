@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.agent.app.data.ChatMessage
 import com.agent.app.network.WebSocketState
-import com.agent.app.ui.theme.AgentBlue
-import com.agent.app.ui.theme.AgentGreen
+import com.agent.app.ui.theme.Teal400
+import com.agent.app.ui.theme.Green400
 import com.agent.app.viewmodel.ChatViewModel
 
 /**
@@ -204,7 +204,7 @@ private fun ChatBubble(chatMessage: ChatMessage) {
                     )
                 )
                 .background(
-                    if (chatMessage.isFromUser) AgentBlue else MaterialTheme.colorScheme.surfaceVariant
+                    if (chatMessage.isFromUser) Teal400 else MaterialTheme.colorScheme.surfaceVariant
                 )
                 .padding(12.dp)
         ) {
@@ -228,8 +228,8 @@ private fun ConnectionIndicator(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val (color, text) = when (state) {
-            WebSocketState.CONNECTED -> AgentGreen to "已连接"
-            WebSocketState.CONNECTING -> AgentGreen.copy(alpha = 0.5f) to "连接中..."
+            WebSocketState.CONNECTED -> Green400 to "已连接"
+            WebSocketState.CONNECTING -> Green400.copy(alpha = 0.5f) to "连接中..."
             WebSocketState.ERROR -> MaterialTheme.colorScheme.error to "错误"
             WebSocketState.DISCONNECTED -> MaterialTheme.colorScheme.onSurfaceVariant to "未连接"
         }
