@@ -46,6 +46,13 @@ class ProvisioningViewModel(application: Application) : AndroidViewModel(applica
     }
     
     /**
+     * 加载已绑定设备（跳过扫描）
+     */
+    fun loadBondedDevices() {
+        bleManager.loadBondedDevices()
+    }
+    
+    /**
      * 停止扫描
      */
     fun stopScan() {
@@ -58,6 +65,15 @@ class ProvisioningViewModel(application: Application) : AndroidViewModel(applica
     fun startProvisioning(ssid: String, password: String) {
         viewModelScope.launch {
             bleManager.connectAndProvision(ssid, password)
+        }
+    }
+    
+    /**
+     * 直连配网（跳过扫描，直接用MAC地址连接NUS服务）
+     */
+    fun directProvision(ssid: String, password: String) {
+        viewModelScope.launch {
+            bleManager.connectDirectByAddress(ssid, password)
         }
     }
     

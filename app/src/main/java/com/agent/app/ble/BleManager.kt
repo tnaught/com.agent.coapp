@@ -101,9 +101,17 @@ class BleManager(private val context: Context) {
             
             val scanSettings = ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setLegacy(false)  // false = 接收 legacy + extended 广播
+                .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
                 .build()
             
-            bluetoothLeScanner?.startScan(null, scanSettings, scanCallback)
+            // 用 Service UUID 过滤只扫描 NUS 设备
+            val nusFilter = ScanFilter.Builder()
+                .setServiceUuid(android.os.ParcelUuid(SERVICE_UUID))
+                .build()
+            
+            Log.d(TAG, "开始BLE扫描（NUS过滤 + Extended Advertising）")
+            bluetoothLeScanner?.startScan(listOf(nusFilter), scanSettings, scanCallback)
             isScanning = true
             Log.d(TAG, "BLE 扫描已启动")
             
@@ -142,10 +150,61 @@ class BleManager(private val context: Context) {
     }
     
     /**
+     * 从已绑定设备列表中查找目标设备（跳过扫描）
+     */
+    fun loadBondedDevices() {
+        val bondedDevices = bluetoothAdapter?.bondedDevices ?: emptySet()
+        Log.d(TAG, "已绑定设备数: ${bondedDevices.size}")
+        
+        devices.clear()
+        for (bd in bondedDevices) {
+            val name = bd.name ?: "Unknown"
+            val address = bd.address
+            Log.d(TAG, "已绑定: name=$name, address=$address")
+            
+            val bleDevice = BleDevice(name = name, address = address, rssi = 0)
+            devices[address] = bleDevice
+        }
+        _scanResults.value = devices.values.toList()
+        
+        if (devices.containsKey(TARGET_DEVICE_ADDRESS)) {
+            _statusMessage.value = "已找到目标设备（已绑定）"
+        } else {
+            _statusMessage.value = "已绑定设备中未找到目标，共 ${devices.size} 个设备"
+        }
+        _provisioningStatus.value = ProvisioningStatus.IDLE
+    }
+
+    /**
+     * 直接通过MAC地址连接GATT（用已绑定关系连接，连接后刷新缓存发现NUS服务）
+     */
+    fun connectDirectByAddress(ssid: String, password: String) {
+        _provisioningStatus.value = ProvisioningStatus.CONNECTING
+        _statusMessage.value = "正在连接 $TARGET_DEVICE_ADDRESS ..."
+        _pendingSsid = ssid
+        _pendingPassword = password
+        
+        try {
+            val bluetoothDevice = bluetoothAdapter?.getRemoteDevice(TARGET_DEVICE_ADDRESS)
+            // 不指定 TRANSPORT_LE，让系统用已绑定的连接方式
+            bluetoothGatt = bluetoothDevice?.connectGatt(context, false, gattCallback)
+            Log.d(TAG, "连接 GATT (bonded): $TARGET_DEVICE_ADDRESS")
+        } catch (e: Exception) {
+            Log.e(TAG, "连接失败: ${e.message}")
+            _statusMessage.value = "连接失败: ${e.message}"
+            _provisioningStatus.value = ProvisioningStatus.FAILED
+        }
+    }
+    
+    private var _pendingSsid = ""
+    private var _pendingPassword = ""
+
+    /**
      * 连接到设备并进行配网
      */
     fun connectAndProvision(ssid: String, password: String) {
-        // 优先连接目标设备，其次连接扫描列表中的第一个
+        // 优先用扫描到的原始设备对象连接（确保连到正确的GATT server）
+        val rawDevice = rawDevices[TARGET_DEVICE_ADDRESS] ?: rawDevices.values.firstOrNull()
         val device = devices[TARGET_DEVICE_ADDRESS] ?: devices.values.firstOrNull()
         if (device == null) {
             _statusMessage.value = "没有找到设备"
@@ -155,10 +214,14 @@ class BleManager(private val context: Context) {
         
         _provisioningStatus.value = ProvisioningStatus.CONNECTING
         _statusMessage.value = "正在连接 ${device.name}..."
+        _pendingSsid = ssid
+        _pendingPassword = password
         
         try {
-            val bluetoothDevice = bluetoothAdapter?.getRemoteDevice(device.address)
-            bluetoothGatt = bluetoothDevice?.connectGatt(context, false, gattCallback)
+            val btDevice = rawDevice ?: bluetoothAdapter?.getRemoteDevice(device.address)
+            // 使用 TRANSPORT_LE 确保走 BLE 广播连接通道
+            bluetoothGatt = btDevice?.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            Log.d(TAG, "连接 GATT (scan device, TRANSPORT_LE): ${device.address}")
         } catch (e: Exception) {
             Log.e(TAG, "连接失败: ${e.message}")
             _statusMessage.value = "连接失败: ${e.message}"
@@ -225,6 +288,8 @@ class BleManager(private val context: Context) {
     /**
      * 扫描回调
      */
+    private val rawDevices = mutableMapOf<String, BluetoothDevice>()
+    
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val deviceName = result.device.name
@@ -232,10 +297,12 @@ class BleManager(private val context: Context) {
             
             Log.d(TAG, "发现设备: name=$deviceName, address=$address, rssi=${result.rssi}")
             
-            // 只显示目标设备
-            if (!address.equals(TARGET_DEVICE_ADDRESS, ignoreCase = true)) return
-            
-            val displayName = if (deviceName.isNullOrBlank()) "XiaomiWatch S5" else deviceName
+            // 显示所有设备（含无名），用于定位目标设备
+            val displayName = when {
+                address.equals(TARGET_DEVICE_ADDRESS, ignoreCase = true) -> "VelaClaw"
+                !deviceName.isNullOrBlank() -> deviceName
+                else -> "[$address]"
+            }
             
             val bleDevice = BleDevice(
                 name = displayName,
@@ -243,6 +310,7 @@ class BleManager(private val context: Context) {
                 rssi = result.rssi
             )
             devices[address] = bleDevice
+            rawDevices[address] = result.device
             _scanResults.value = devices.values.toList().sortedByDescending { it.rssi }
         }
         
@@ -263,9 +331,10 @@ class BleManager(private val context: Context) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     mainHandler.post {
                         _provisioningStatus.value = ProvisioningStatus.CONNECTED
-                        _statusMessage.value = "已连接，正在发现服务..."
+                        _statusMessage.value = "已连接，协商MTU..."
                     }
-                    gatt.discoverServices()
+                    // 请求更大的MTU（默认23太小，JSON会被截断）
+                    gatt.requestMtu(512)
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     mainHandler.post {
@@ -312,8 +381,14 @@ class BleManager(private val context: Context) {
                     }
                     Log.d(TAG, "已启用 TX 通知")
                     mainHandler.post {
-                        _statusMessage.value = "服务已就绪，可以发送数据"
+                        _statusMessage.value = "服务已就绪，正在发送WiFi凭据..."
                         _provisioningStatus.value = ProvisioningStatus.CONNECTED
+                        // 自动发送WiFi凭据
+                        if (_pendingSsid.isNotEmpty()) {
+                            mainHandler.postDelayed({
+                                sendWifiCredentials(_pendingSsid, _pendingPassword)
+                            }, 500)
+                        }
                     }
                 } else {
                     Log.w(TAG, "未找到 TX 特征")
@@ -324,6 +399,14 @@ class BleManager(private val context: Context) {
                     _provisioningStatus.value = ProvisioningStatus.FAILED
                 }
             }
+        }
+        
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            Log.d(TAG, "MTU changed: mtu=$mtu, status=$status")
+            mainHandler.post {
+                _statusMessage.value = "MTU=$mtu，正在发现服务..."
+            }
+            gatt.discoverServices()
         }
         
         override fun onCharacteristicWrite(
@@ -390,6 +473,22 @@ class BleManager(private val context: Context) {
         }
         val end = json.indexOf('"', idx)
         return if (end > idx) json.substring(idx, end) else null
+    }
+    
+    /**
+     * 清除GATT服务缓存（反射调用隐藏API）
+     * 解决已绑定设备缓存旧服务列表的问题
+     */
+    private fun refreshGattCache(gatt: BluetoothGatt): Boolean {
+        try {
+            val method = gatt.javaClass.getMethod("refresh")
+            val result = method.invoke(gatt) as? Boolean ?: false
+            Log.d(TAG, "GATT cache refresh: $result")
+            return result
+        } catch (e: Exception) {
+            Log.w(TAG, "GATT cache refresh failed: ${e.message}")
+            return false
+        }
     }
     
     /**

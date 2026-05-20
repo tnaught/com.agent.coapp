@@ -108,6 +108,71 @@ fun BleProvisioningScreen(
                 }
             }
             
+            // 已绑定设备按钮
+            Button(
+                onClick = { viewModel.loadBondedDevices() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = viewModel.isBluetoothAvailable()
+            ) {
+                Text("已绑定设备")
+            }
+            
+            // 直连配网按钮
+            var showDirectDialog by remember { mutableStateOf(false) }
+            Button(
+                onClick = { showDirectDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = viewModel.isBluetoothAvailable()
+            ) {
+                Text("直连配网 (VelaClaw)")
+            }
+            
+            if (showDirectDialog) {
+                var directSsid by remember { mutableStateOf("") }
+                var directPassword by remember { mutableStateOf("") }
+                AlertDialog(
+                    onDismissRequest = { showDirectDialog = false },
+                    title = { Text("直连配网") },
+                    text = {
+                        Column {
+                            Text("直接连接 VelaClaw 设备", style = MaterialTheme.typography.bodySmall)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = directSsid,
+                                onValueChange = { directSsid = it },
+                                label = { Text("WiFi名称 (SSID)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = directPassword,
+                                onValueChange = { directPassword = it },
+                                label = { Text("WiFi密码") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDirectDialog = false
+                                viewModel.directProvision(directSsid, directPassword)
+                            },
+                            enabled = directSsid.isNotBlank()
+                        ) {
+                            Text("连接并配网")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDirectDialog = false }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
+            
             Spacer(modifier = Modifier.height(16.dp))
             
             // 状态信息
