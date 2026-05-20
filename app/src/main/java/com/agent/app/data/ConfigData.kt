@@ -17,7 +17,7 @@ data class AgentConfig(
     val volcAsrCluster: String = "volcengine_streaming_common",
     // 设备连接
     val deviceIp: String = "",
-    val devicePort: Int = 8080
+    val devicePort: Int = 28789
 )
 
 /**

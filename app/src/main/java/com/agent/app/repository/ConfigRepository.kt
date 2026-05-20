@@ -44,7 +44,7 @@ class ConfigRepository(private val context: Context) {
             volcAsrToken = preferences[KEY_VOLC_ASR_TOKEN] ?: "",
             volcAsrCluster = preferences[KEY_VOLC_ASR_CLUSTER] ?: "volcengine_streaming_common",
             deviceIp = preferences[KEY_DEVICE_IP] ?: "",
-            devicePort = preferences[KEY_DEVICE_PORT] ?: 8080
+            devicePort = preferences[KEY_DEVICE_PORT] ?: 28789
         )
     }
     
