@@ -45,6 +45,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // 加载历史消息
         loadMessages()
         
+        // 自动连接上次的设备
+        viewModelScope.launch {
+            val config = configRepository.configFlow.first()
+            if (config.deviceIp.isNotEmpty()) {
+                deviceRepository.connectWebSocket(config.deviceIp, config.devicePort)
+            }
+        }
+        
         // 监听WebSocket消息
         viewModelScope.launch {
             deviceRepository.getWebSocketMessages().collect { wsMessages ->
