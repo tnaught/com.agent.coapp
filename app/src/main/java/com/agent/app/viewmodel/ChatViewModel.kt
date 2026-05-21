@@ -7,10 +7,14 @@ import com.agent.app.data.ChatMessage
 import com.agent.app.network.WebSocketState
 import com.agent.app.repository.ConfigRepository
 import com.agent.app.repository.DeviceRepository
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * 聊天ViewModel
@@ -19,6 +23,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     
     private val configRepository = ConfigRepository(application)
     private val deviceRepository = DeviceRepository()
+    private val gson = Gson()
+    private val chatFile = File(application.filesDir, "chat_history.json")
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages
@@ -36,6 +42,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val message: StateFlow<String> = _message
     
     init {
+        // 加载历史消息
+        loadMessages()
+        
         // 监听WebSocket消息
         viewModelScope.launch {
             deviceRepository.getWebSocketMessages().collect { wsMessages ->
@@ -54,6 +63,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 )
                             )
                             _messages.value = currentMessages
+                            saveMessages()
                         }
                     }
                 }
@@ -109,6 +119,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val currentMessages = _messages.value.toMutableList()
         currentMessages.add(ChatMessage(content = content, isFromUser = true))
         _messages.value = currentMessages
+        saveMessages()
         
         // 清空输入框
         _inputText.value = ""
@@ -130,6 +141,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun clearMessages() {
         _messages.value = emptyList()
         deviceRepository.clearWebSocketMessages()
+        saveMessages()
     }
     
     /**
@@ -137,6 +149,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun clearMessage() {
         _message.value = ""
+    }
+    
+    private fun saveMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 只保留最近100条
+                val toSave = _messages.value.takeLast(100)
+                chatFile.writeText(gson.toJson(toSave))
+            } catch (_: Exception) {}
+        }
+    }
+    
+    private fun loadMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (chatFile.exists()) {
+                    val json = chatFile.readText()
+                    val type = object : TypeToken<List<ChatMessage>>() {}.type
+                    val saved: List<ChatMessage> = gson.fromJson(json, type) ?: emptyList()
+                    _messages.value = saved
+                }
+            } catch (_: Exception) {}
+        }
     }
     
     override fun onCleared() {

@@ -38,10 +38,10 @@ fun ChatScreen(
     
     val listState = rememberLazyListState()
     
-    // 自动滚动到底部
+    // 自动滚动到底部（消息变化或键盘弹出时）
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            listState.scrollToItem(messages.size - 1)
         }
     }
     
@@ -74,7 +74,6 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .imePadding()
         ) {
             // 消息提示
             if (message.isNotEmpty()) {
@@ -142,7 +141,9 @@ fun ChatScreen(
             
             // 底部输入区域
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding(),
                 shadowElevation = 8.dp
             ) {
                 Row(
