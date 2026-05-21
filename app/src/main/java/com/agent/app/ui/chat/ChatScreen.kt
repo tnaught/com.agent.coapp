@@ -56,7 +56,7 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI Agent 对话") },
+                title = { Text("对话", maxLines = 1) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
@@ -74,6 +74,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             // 消息提示
             if (message.isNotEmpty()) {
@@ -243,7 +244,9 @@ private fun ConnectionIndicator(
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = if (statusMessage.isNotEmpty()) statusMessage else text,
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            modifier = Modifier.widthIn(max = 100.dp)
         )
     }
 }

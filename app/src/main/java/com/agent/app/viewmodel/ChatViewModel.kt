@@ -41,7 +41,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             deviceRepository.getWebSocketMessages().collect { wsMessages ->
                 // 处理收到的WebSocket消息
                 wsMessages.forEach { wsResponse ->
-                    if (wsResponse.type == "message") {
+                    if (wsResponse.type == "message" || wsResponse.type == "response") {
                         val currentMessages = _messages.value.toMutableList()
                         // 避免重复添加
                         if (currentMessages.none { 
