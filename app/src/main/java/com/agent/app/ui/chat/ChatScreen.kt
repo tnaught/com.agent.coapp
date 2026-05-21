@@ -1,6 +1,7 @@
 package com.agent.app.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,13 +14,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.agent.app.data.ChatMessage
 import com.agent.app.network.WebSocketState
 import com.agent.app.ui.theme.Teal400
 import com.agent.app.ui.theme.Green400
+import com.agent.app.ui.theme.AccentMist
+import com.agent.app.ui.theme.TextPrimary
+import com.agent.app.ui.theme.TextSecondary
+import com.agent.app.ui.theme.UserBubble
+import com.agent.app.ui.theme.AiBubble
+import com.agent.app.ui.theme.Red400
 import com.agent.app.viewmodel.ChatViewModel
 
 /**
@@ -206,13 +212,23 @@ private fun ChatBubble(chatMessage: ChatMessage) {
                     )
                 )
                 .background(
-                    if (chatMessage.isFromUser) Teal400 else MaterialTheme.colorScheme.surfaceVariant
+                    if (chatMessage.isFromUser) UserBubble else AiBubble
+                )
+                .then(
+                    if (chatMessage.isFromUser) Modifier.border(
+                        width = 1.dp,
+                        color = AccentMist,
+                        shape = RoundedCornerShape(
+                            topStart = 16.dp, topEnd = 16.dp,
+                            bottomStart = 16.dp, bottomEnd = 4.dp
+                        )
+                    ) else Modifier
                 )
                 .padding(12.dp)
         ) {
             Text(
                 text = chatMessage.content,
-                color = if (chatMessage.isFromUser) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                color = TextPrimary
             )
         }
     }
@@ -231,9 +247,9 @@ private fun ConnectionIndicator(
     ) {
         val (color, text) = when (state) {
             WebSocketState.CONNECTED -> Green400 to "已连接"
-            WebSocketState.CONNECTING -> Green400.copy(alpha = 0.5f) to "连接中..."
-            WebSocketState.ERROR -> MaterialTheme.colorScheme.error to "错误"
-            WebSocketState.DISCONNECTED -> MaterialTheme.colorScheme.onSurfaceVariant to "未连接"
+            WebSocketState.CONNECTING -> AccentMist to "连接中..."
+            WebSocketState.ERROR -> Red400 to "错误"
+            WebSocketState.DISCONNECTED -> TextSecondary to "未连接"
         }
         
         Box(

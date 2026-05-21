@@ -10,40 +10,40 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    // 品牌
-    primary = Teal400,
-    onPrimary = Slate950,
-    primaryContainer = Teal800,
-    onPrimaryContainer = Teal200,
+    // 品牌 - accent只给线/点
+    primary = AccentMist,
+    onPrimary = TextPrimary,
+    primaryContainer = AccentDark,
+    onPrimaryContainer = AccentMist,
     // 二级
-    secondary = Slate400,
-    onSecondary = Slate950,
-    secondaryContainer = Slate850,
-    onSecondaryContainer = Slate200,
+    secondary = TextSecondary,
+    onSecondary = L1,
+    secondaryContainer = L3,
+    onSecondaryContainer = TextPrimary,
     // 三级
     tertiary = Green400,
-    onTertiary = Slate950,
+    onTertiary = L1,
     tertiaryContainer = Color(0xFF1A3A2A),
     onTertiaryContainer = Green400,
     // 错误
     error = Red400,
-    onError = Slate950,
+    onError = L1,
     errorContainer = Color(0xFF3B1A1A),
     onErrorContainer = Red400,
     // 表面
-    background = Slate950,
-    onBackground = Slate200,
-    surface = Slate950,
-    onSurface = Slate200,
-    surfaceVariant = Slate900,
-    onSurfaceVariant = Slate400,
+    background = L1,
+    onBackground = TextPrimary,
+    surface = L1,
+    onSurface = TextPrimary,
+    surfaceVariant = L2,
+    onSurfaceVariant = TextSecondary,
     // 轮廓
-    outline = Slate800,
-    outlineVariant = Color(0xFF2D3A4F),
+    outline = L3,
+    outlineVariant = Color(0xFF2D333B),
     // 反色
-    inverseSurface = Slate200,
-    inverseOnSurface = Slate950,
-    inversePrimary = Teal800,
+    inverseSurface = TextPrimary,
+    inverseOnSurface = L1,
+    inversePrimary = AccentDark,
 )
 
 @Composable
@@ -56,8 +56,8 @@ fun AndroidAgentAppTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Slate950.toArgb()
-            window.navigationBarColor = Slate950.toArgb()
+            window.statusBarColor = L1.toArgb()
+            window.navigationBarColor = L2.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
         }
