@@ -67,7 +67,7 @@ fun BleProvisioningScreen(
             TopAppBar(
                 title = { Text("蓝牙配网") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }

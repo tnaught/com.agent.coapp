@@ -46,7 +46,7 @@ fun ConfigScreen(
             TopAppBar(
                 title = { Text("Agent配置") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }

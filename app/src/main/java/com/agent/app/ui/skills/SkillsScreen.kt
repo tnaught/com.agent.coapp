@@ -45,7 +45,7 @@ fun SkillsScreen(
             TopAppBar(
                 title = { Text("技能管理") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
                     IconButton(onClick = { viewModel.loadSkills() }) {

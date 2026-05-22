@@ -64,7 +64,7 @@ fun ChatScreen(
             TopAppBar(
                 title = { Text("对话", maxLines = 1) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
                     // 连接状态指示器
@@ -243,7 +243,8 @@ private fun ConnectionIndicator(
     statusMessage: String
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(end = 12.dp)
     ) {
         val (color, text) = when (state) {
             WebSocketState.CONNECTED -> Green400 to "已连接"
@@ -252,18 +253,22 @@ private fun ConnectionIndicator(
             WebSocketState.DISCONNECTED -> TextSecondary to "未连接"
         }
         
+        // 如果状态消息包含"失败"/"断开"则用红色
+        val dotColor = if (statusMessage.contains("失败") || statusMessage.contains("错误")) Red400 else color
+        
         Box(
             modifier = Modifier
                 .size(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(color)
+                .background(dotColor)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = if (statusMessage.isNotEmpty()) statusMessage else text,
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
-            modifier = Modifier.widthIn(max = 100.dp)
+            modifier = Modifier.widthIn(max = 100.dp),
+            color = TextSecondary
         )
     }
 }

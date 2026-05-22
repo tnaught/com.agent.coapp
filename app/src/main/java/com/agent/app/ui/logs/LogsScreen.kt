@@ -52,7 +52,7 @@ fun LogsScreen(
             TopAppBar(
                 title = { Text("日志查看") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
