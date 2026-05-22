@@ -108,13 +108,9 @@ class BleManager(private val context: Context) {
                 .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
                 .build()
             
-            // 用 Service UUID 过滤只扫描 NUS 设备
-            val nusFilter = ScanFilter.Builder()
-                .setServiceUuid(android.os.ParcelUuid(SERVICE_UUID))
-                .build()
-            
-            Log.d(TAG, "开始BLE扫描（NUS过滤 + Extended Advertising）")
-            bluetoothLeScanner?.startScan(listOf(nusFilter), scanSettings, scanCallback)
+            // 扫描所有BLE 5 Extended Advertising设备
+            Log.d(TAG, "开始BLE扫描（Extended Advertising）")
+            bluetoothLeScanner?.startScan(null, scanSettings, scanCallback)
             isScanning = true
             Log.d(TAG, "BLE 扫描已启动")
             
@@ -227,7 +223,7 @@ class BleManager(private val context: Context) {
             Log.d(TAG, "连接 GATT (scan device, TRANSPORT_LE): ${device.address}")
         } catch (e: Exception) {
             Log.e(TAG, "连接失败: ${e.message}")
-            _statusMessage.value = "连接失败: ${e.message}"
+            _statusMessage.value = "连接失败: ${e.message}\n提示: 若反复失败，请在手机蓝牙设置中忘记该设备后重试"
             _provisioningStatus.value = ProvisioningStatus.FAILED
         }
     }
@@ -323,11 +319,11 @@ class BleManager(private val context: Context) {
             
             Log.d(TAG, "发现设备: name=$deviceName, address=$address, rssi=${result.rssi}")
             
-            // 显示所有设备（含无名），用于定位目标设备
+            // 显示目标MAC设备 + 有名称的设备
             val displayName = when {
                 address.equals(TARGET_DEVICE_ADDRESS, ignoreCase = true) -> "VelaClaw"
                 !deviceName.isNullOrBlank() -> deviceName
-                else -> "[$address]"
+                else -> return  // 跳过无名非目标设备
             }
             
             val bleDevice = BleDevice(
@@ -388,7 +384,7 @@ class BleManager(private val context: Context) {
                 if (service == null) {
                     Log.w(TAG, "未找到目标服务 $SERVICE_UUID")
                     mainHandler.post {
-                        _statusMessage.value = "设备不支持配网服务"
+                        _statusMessage.value = "设备不支持配网服务\n提示: 请在手机蓝牙设置中忘记该设备后重试"
                         _provisioningStatus.value = ProvisioningStatus.FAILED
                     }
                     return
@@ -432,7 +428,10 @@ class BleManager(private val context: Context) {
             mainHandler.post {
                 _statusMessage.value = "MTU=$mtu，正在发现服务..."
             }
-            gatt.discoverServices()
+            refreshGattCache(gatt)
+            mainHandler.postDelayed({
+                gatt.discoverServices()
+            }, 1500)
         }
         
         override fun onCharacteristicWrite(

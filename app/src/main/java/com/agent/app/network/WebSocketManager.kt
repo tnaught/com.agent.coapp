@@ -102,7 +102,6 @@ class WebSocketManager {
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket错误: ${t.message}")
                 if (_connectionState.value == WebSocketState.CONNECTED) {
-                    // 已连接后断开 — 尝试重连
                     _connectionState.value = WebSocketState.DISCONNECTED
                     _statusMessage.value = "连接断开，可重新连接"
                 } else {
