@@ -108,9 +108,13 @@ class BleManager(private val context: Context) {
                 .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
                 .build()
             
-            // 扫描所有BLE 5 Extended Advertising设备
-            Log.d(TAG, "开始BLE扫描（Extended Advertising）")
-            bluetoothLeScanner?.startScan(null, scanSettings, scanCallback)
+            // 用 NUS Service UUID 过滤扫描
+            val nusFilter = ScanFilter.Builder()
+                .setServiceUuid(android.os.ParcelUuid(SERVICE_UUID))
+                .build()
+            
+            Log.d(TAG, "开始BLE扫描（NUS过滤 + Extended Advertising）")
+            bluetoothLeScanner?.startScan(listOf(nusFilter), scanSettings, scanCallback)
             isScanning = true
             Log.d(TAG, "BLE 扫描已启动")
             
@@ -319,11 +323,11 @@ class BleManager(private val context: Context) {
             
             Log.d(TAG, "发现设备: name=$deviceName, address=$address, rssi=${result.rssi}")
             
-            // 显示目标MAC设备 + 有名称的设备
+            // 显示目标MAC设备 + 有名称的NUS设备
             val displayName = when {
-                address.equals(TARGET_DEVICE_ADDRESS, ignoreCase = true) -> "VelaClaw"
+                address.equals(TARGET_DEVICE_ADDRESS, ignoreCase = true) -> deviceName ?: "VelaClaw"
                 !deviceName.isNullOrBlank() -> deviceName
-                else -> return  // 跳过无名非目标设备
+                else -> return
             }
             
             val bleDevice = BleDevice(
