@@ -72,6 +72,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             )
                             _messages.value = currentMessages
                             saveMessages()
+                            pendingReplyCount++  // 取消超时
                         }
                     }
                 }
@@ -119,6 +120,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * 发送消息
      */
+    private var pendingReplyCount = 0
+    
     fun sendMessage() {
         val content = _inputText.value.trim()
         if (content.isEmpty()) return
@@ -134,6 +137,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         
         // 发送消息
         deviceRepository.sendMessage(content)
+        
+        // 2分钟超时检测
+        pendingReplyCount++
+        val expectedCount = pendingReplyCount
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(120_000)
+            if (pendingReplyCount == expectedCount) {
+                // 超时未收到回复
+                val msgs = _messages.value.toMutableList()
+                msgs.add(ChatMessage(content = "⏱ 响应超时，设备可能离线或服务不可用", isFromUser = false))
+                _messages.value = msgs
+                saveMessages()
+            }
+        }
     }
     
     /**
