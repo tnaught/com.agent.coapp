@@ -264,6 +264,14 @@ class BleManager(private val context: Context) {
             
             if (success) {
                 _statusMessage.value = "WiFi凭据已发送，等待设备响应..."
+                // 15秒超时
+                mainHandler.postDelayed({
+                    if (_provisioningStatus.value == ProvisioningStatus.SENDING_WIFI) {
+                        _statusMessage.value = "响应超时，请重试"
+                        _provisioningStatus.value = ProvisioningStatus.FAILED
+                        disconnect()
+                    }
+                }, 15000)
             } else {
                 _statusMessage.value = "写入失败"
                 _provisioningStatus.value = ProvisioningStatus.FAILED
