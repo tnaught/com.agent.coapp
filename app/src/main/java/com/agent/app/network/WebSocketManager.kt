@@ -54,6 +54,10 @@ class WebSocketManager {
             return
         }
         
+        // 关闭旧连接
+        webSocket?.close(1000, null)
+        webSocket = null
+        
         _connectionState.value = WebSocketState.CONNECTING
         
         val wsUrl = "ws://$deviceIp:$port/ws/chat"
