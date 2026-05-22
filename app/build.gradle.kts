@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.agent.app"
+    namespace = "com.agent.coapp"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.agent.app"
+        applicationId = "com.agent.coapp"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

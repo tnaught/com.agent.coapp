@@ -17,7 +17,7 @@ open-vela AI Agent 的 Android 配套 App，用于：
 - BLE（蓝牙低功耗）扫描 + GATT 通信
 - OkHttp（REST API + WebSocket）
 - MVVM 架构（ViewModel + StateFlow）
-- 包名：`com.agent.app`
+- 包名：`com.agent.coapp`
 
 ## 项目结构
 

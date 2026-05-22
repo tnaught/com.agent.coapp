@@ -86,13 +86,13 @@ git push -u origin feature/xxx
 # USB 连接手机，开启开发者选项 + USB 调试
 adb devices                          # 确认设备连接
 ./gradlew installDebug               # 编译并安装
-adb shell am start -n com.agent.app/.MainActivity  # 启动 App
+adb shell am start -n com.agent.coapp/.MainActivity  # 启动 App
 ```
 
 ### Logcat 日志
 ```bash
 # 查看 App 全部日志
-adb logcat --pid=$(adb shell pidof com.agent.app)
+adb logcat --pid=$(adb shell pidof com.agent.coapp)
 
 # 按 Tag 过滤
 adb logcat -s BleManager:V WebSocketManager:V DeviceApiService:V
@@ -111,7 +111,7 @@ adb logcat -s BleManager:V BluetoothGatt:V
 **BLE 扫描无结果：**
 ```bash
 # 确认蓝牙和位置权限
-adb shell dumpsys package com.agent.app | grep permission
+adb shell dumpsys package com.agent.coapp | grep permission
 # 确认位置服务开启
 adb shell settings get secure location_mode
 # 查看系统 BLE 日志
