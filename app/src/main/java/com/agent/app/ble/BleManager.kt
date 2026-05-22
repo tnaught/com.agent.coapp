@@ -108,13 +108,13 @@ class BleManager(private val context: Context) {
                 .setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
                 .build()
             
-            // 用 NUS Service UUID 过滤扫描
-            val nusFilter = ScanFilter.Builder()
-                .setServiceUuid(android.os.ParcelUuid(SERVICE_UUID))
+            // 按MAC地址过滤目标设备
+            val macFilter = ScanFilter.Builder()
+                .setDeviceAddress(TARGET_DEVICE_ADDRESS)
                 .build()
             
-            Log.d(TAG, "开始BLE扫描（NUS过滤 + Extended Advertising）")
-            bluetoothLeScanner?.startScan(listOf(nusFilter), scanSettings, scanCallback)
+            Log.d(TAG, "开始BLE扫描（MAC过滤 + Extended Advertising）")
+            bluetoothLeScanner?.startScan(listOf(macFilter), scanSettings, scanCallback)
             isScanning = true
             Log.d(TAG, "BLE 扫描已启动")
             
