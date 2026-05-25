@@ -103,8 +103,32 @@ jobs:
 
             echo "=== Take screenshot ==="
             mkdir -p screenshots
-            adb shell screencap -p /sdcard/launch-screen.png
-            adb pull /sdcard/launch-screen.png screenshots/launch-screen.png
+            adb shell screencap -p /sdcard/screenshot.png
+            adb pull /sdcard/screenshot.png screenshots/01-provisioning.png
+
+            echo "=== Switch to Config tab ==="
+            adb shell input tap 324 2340
+            sleep 2
+            adb shell screencap -p /sdcard/screenshot.png
+            adb pull /sdcard/screenshot.png screenshots/02-config.png
+
+            echo "=== Switch to Skills tab ==="
+            adb shell input tap 540 2340
+            sleep 2
+            adb shell screencap -p /sdcard/screenshot.png
+            adb pull /sdcard/screenshot.png screenshots/03-skills.png
+
+            echo "=== Switch to Logs tab ==="
+            adb shell input tap 756 2340
+            sleep 2
+            adb shell screencap -p /sdcard/screenshot.png
+            adb pull /sdcard/screenshot.png screenshots/04-logs.png
+
+            echo "=== Switch to Chat tab ==="
+            adb shell input tap 972 2340
+            sleep 2
+            adb shell screencap -p /sdcard/screenshot.png
+            adb pull /sdcard/screenshot.png screenshots/05-chat.png
 
       - name: Upload Screenshots
         if: always()
