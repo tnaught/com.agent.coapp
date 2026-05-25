@@ -102,37 +102,7 @@ jobs:
             sleep 5
 
             echo "=== Take screenshots ==="
-            mkdir -p screenshots
-            adb shell screencap -p /sdcard/screenshot.png
-            adb pull /sdcard/screenshot.png screenshots/01-provisioning.png
-
-            # Dump UI hierarchy to find actual tab coordinates
-            adb shell uiautomator dump /sdcard/ui.xml
-            adb pull /sdcard/ui.xml screenshots/ui-dump.xml || true
-
-            # Click each tab by text matching from UI dump
-            for TAB in "配置:02-config" "技能:03-skills" "日志:04-logs" "对话:05-chat"; do
-              NAME=$(echo $TAB | cut -d: -f1)
-              FILE=$(echo $TAB | cut -d: -f2)
-              BOUNDS=$(grep -oP "text=\"${NAME}\"[^>]*bounds=\"\[\d+,\d+\]\[\d+,\d+\]\"" screenshots/ui-dump.xml | grep -oP '\[\d+,\d+\]\[\d+,\d+\]' | head -1)
-              if [ -n "$BOUNDS" ]; then
-                X1=$(echo $BOUNDS | grep -oP '(?<=\[)\d+' | head -1)
-                Y1=$(echo $BOUNDS | grep -oP '(?<=,)\d+' | head -1)
-                X2=$(echo $BOUNDS | grep -oP '(?<=\[)\d+' | tail -1)
-                Y2=$(echo $BOUNDS | grep -oP '(?<=,)\d+' | tail -1)
-                CX=$(( (X1 + X2) / 2 ))
-                CY=$(( (Y1 + Y2) / 2 ))
-                echo "Tapping $NAME at ($CX, $CY)"
-                adb shell input tap $CX $CY
-              else
-                echo "WARN: Could not find tab '$NAME' in UI dump"
-              fi
-              sleep 3
-              adb shell screencap -p /sdcard/screenshot.png
-              adb pull /sdcard/screenshot.png screenshots/${FILE}.png
-              adb shell uiautomator dump /sdcard/ui.xml
-              adb pull /sdcard/ui.xml screenshots/ui-dump.xml || true
-            done
+            bash scripts/ci-screenshots.sh
 
       - name: Upload Screenshots
         if: always()
