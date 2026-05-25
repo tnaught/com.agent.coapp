@@ -1,10 +1,8 @@
 package com.agent.coapp.network
 
-import com.agent.coapp.data.ConfigRequest
-import com.agent.coapp.data.ConfigResponse
-import com.agent.coapp.data.LogsResponse
 import com.agent.coapp.data.Skill
 import com.agent.coapp.data.SkillPushRequest
+import com.agent.coapp.data.SkillsResponse
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
@@ -20,34 +18,36 @@ import java.util.concurrent.TimeUnit
  * 处理与Agent设备的HTTP通信
  */
 class DeviceApiService {
-    
+
     private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
         .build()
-    
+
     private val gson = Gson()
-    
+
     companion object {
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
-    
+
     /**
-     * 获取Agent配置
+     * GET /api/config → Map<String, String>
      */
-    suspend fun getConfig(baseUrl: String): Result<ConfigResponse> = withContext(Dispatchers.IO) {
+    suspend fun getConfig(baseUrl: String): Result<Map<String, String>> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
                 .url("$baseUrl/api/config")
                 .get()
                 .build()
-            
+
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 val body = response.body?.string() ?: "{}"
-                val config = gson.fromJson(body, ConfigResponse::class.java)
-                Result.success(config)
+                val map: Map<String, String> = gson.fromJson(
+                    body, object : TypeToken<Map<String, String>>() {}.type
+                )
+                Result.success(map)
             } else {
                 Result.failure(IOException("获取配置失败: ${response.code}"))
             }
@@ -55,20 +55,20 @@ class DeviceApiService {
             Result.failure(e)
         }
     }
-    
+
     /**
-     * 更新Agent配置
+     * PUT /api/config with key-value map
      */
-    suspend fun updateConfig(baseUrl: String, config: ConfigRequest): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun updateConfig(baseUrl: String, config: Map<String, String>): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val json = gson.toJson(config)
             val requestBody = json.toRequestBody(JSON_MEDIA_TYPE)
-            
+
             val request = Request.Builder()
                 .url("$baseUrl/api/config")
-                .post(requestBody)
+                .put(requestBody)
                 .build()
-            
+
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 Result.success(Unit)
@@ -79,9 +79,9 @@ class DeviceApiService {
             Result.failure(e)
         }
     }
-    
+
     /**
-     * 获取技能列表
+     * GET /api/skills → List<Skill>
      */
     suspend fun getSkills(baseUrl: String): Result<List<Skill>> = withContext(Dispatchers.IO) {
         try {
@@ -89,22 +89,12 @@ class DeviceApiService {
                 .url("$baseUrl/api/skills")
                 .get()
                 .build()
-            
+
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val body = response.body?.string() ?: "[]"
-                // 尝试解析为列表或包含skills的对象
-                val skills: List<Skill> = try {
-                    gson.fromJson(body, object : TypeToken<List<Skill>>() {}.type)
-                } catch (e: Exception) {
-                    try {
-                        val responseObj = gson.fromJson(body, SkillsResponse::class.java)
-                        responseObj.skills ?: emptyList()
-                    } catch (e2: Exception) {
-                        emptyList()
-                    }
-                }
-                Result.success(skills)
+                val body = response.body?.string() ?: "{}"
+                val resp = gson.fromJson(body, SkillsResponse::class.java)
+                Result.success(resp.skills ?: emptyList())
             } else {
                 Result.failure(IOException("获取技能列表失败: ${response.code}"))
             }
@@ -112,20 +102,20 @@ class DeviceApiService {
             Result.failure(e)
         }
     }
-    
+
     /**
-     * 推送技能
+     * POST /api/skills with name + content
      */
     suspend fun pushSkill(baseUrl: String, skill: SkillPushRequest): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val json = gson.toJson(skill)
             val requestBody = json.toRequestBody(JSON_MEDIA_TYPE)
-            
+
             val request = Request.Builder()
                 .url("$baseUrl/api/skills")
                 .post(requestBody)
                 .build()
-            
+
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 Result.success(Unit)
@@ -136,9 +126,9 @@ class DeviceApiService {
             Result.failure(e)
         }
     }
-    
+
     /**
-     * 删除技能
+     * DELETE /api/skills/{name}
      */
     suspend fun deleteSkill(baseUrl: String, skillName: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
@@ -146,7 +136,7 @@ class DeviceApiService {
                 .url("$baseUrl/api/skills/$skillName")
                 .delete()
                 .build()
-            
+
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 Result.success(Unit)
@@ -157,9 +147,9 @@ class DeviceApiService {
             Result.failure(e)
         }
     }
-    
+
     /**
-     * 获取日志
+     * GET /api/logs
      */
     suspend fun getLogs(baseUrl: String, lines: Int = 100): Result<List<String>> = withContext(Dispatchers.IO) {
         try {
@@ -167,12 +157,16 @@ class DeviceApiService {
                 .url("$baseUrl/api/logs?lines=$lines")
                 .get()
                 .build()
-            
+
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 val body = response.body?.string() ?: "{}"
-                val logsResponse = gson.fromJson(body, LogsResponse::class.java)
-                Result.success(logsResponse.logs ?: emptyList())
+                val map: Map<String, Any> = gson.fromJson(
+                    body, object : TypeToken<Map<String, Any>>() {}.type
+                )
+                @Suppress("UNCHECKED_CAST")
+                val logs = (map["logs"] as? List<String>) ?: emptyList()
+                Result.success(logs)
             } else {
                 Result.failure(IOException("获取日志失败: ${response.code}"))
             }
@@ -181,6 +175,3 @@ class DeviceApiService {
         }
     }
 }
-
-// 响应类
-data class SkillsResponse(val skills: List<Skill>?)

@@ -20,6 +20,8 @@ import com.agent.coapp.ui.navigation.NavRoutes
 import com.agent.coapp.ui.provisioning.BleProvisioningScreen
 import com.agent.coapp.ui.skills.SkillsScreen
 import com.agent.coapp.ui.theme.AndroidAgentAppTheme
+import com.agent.coapp.viewmodel.ChatViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
  * 主Activity
@@ -49,6 +51,7 @@ fun MainScreen() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val chatViewModel: ChatViewModel = viewModel()
     
     Scaffold(
         bottomBar = {
@@ -93,7 +96,7 @@ fun MainScreen() {
                 LogsScreen()
             }
             composable(NavRoutes.Chat) {
-                ChatScreen()
+                ChatScreen(viewModel = chatViewModel)
             }
         }
     }

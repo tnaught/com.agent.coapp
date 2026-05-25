@@ -39,3 +39,6 @@ obj/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local config with real keys (not committed)
+app/src/main/assets/default_config.json.claude/

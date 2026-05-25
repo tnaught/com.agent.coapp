@@ -17,30 +17,26 @@ import com.agent.coapp.data.AgentConfig
 import com.agent.coapp.viewmodel.ConfigViewModel
 import com.agent.coapp.viewmodel.SyncResult
 
-/**
- * 配置页面
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfigScreen(
-    viewModel: ConfigViewModel = viewModel()
-) {
+fun ConfigScreen(viewModel: ConfigViewModel = viewModel()) {
     val config by viewModel.configFlow.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val syncResult by viewModel.syncResult.collectAsState()
-    
-    var editedConfig by remember(config) { mutableStateOf(config) }
+
+    var edited by remember(config) { mutableStateOf(config) }
     var hasChanges by remember { mutableStateOf(false) }
-    
-    // 监听同步结果
+
+    // 进入页面自动从设备同步
+    LaunchedEffect(Unit) { viewModel.syncFromDevice() }
+
     LaunchedEffect(syncResult) {
         syncResult?.let {
-            // 自动清除
             kotlinx.coroutines.delay(3000)
             viewModel.clearSyncResult()
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -50,131 +46,68 @@ fun ConfigScreen(
                 )
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // LLM配置
-            ConfigSection(title = "LLM 配置") {
-                ConfigTextField(
-                    value = editedConfig.llmBaseUrl,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(llmBaseUrl = it)
-                        hasChanges = true
-                    },
-                    label = "Base URL"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
-                    value = editedConfig.llmModel,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(llmModel = it)
-                        hasChanges = true
-                    },
-                    label = "模型名称"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
-                    value = editedConfig.llmApiKey,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(llmApiKey = it)
-                        hasChanges = true
-                    },
-                    label = "LLM API Key",
-                    isPassword = true
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Tavily 搜索
-            ConfigSection(title = "Tavily 搜索") {
-                ConfigTextField(
-                    value = editedConfig.tavilyKey,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(tavilyKey = it)
-                        hasChanges = true
-                    },
-                    label = "Tavily API Key",
-                    isPassword = true
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 火山引擎 ASR
-            ConfigSection(title = "火山引擎 ASR") {
-                ConfigTextField(
-                    value = editedConfig.volcKey,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(volcKey = it)
-                        hasChanges = true
-                    },
-                    label = "Volc Key",
-                    isPassword = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
-                    value = editedConfig.volcAsrAppId,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(volcAsrAppId = it)
-                        hasChanges = true
-                    },
-                    label = "ASR App ID"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
-                    value = editedConfig.volcAsrToken,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(volcAsrToken = it)
-                        hasChanges = true
-                    },
-                    label = "ASR Token",
-                    isPassword = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
-                    value = editedConfig.volcAsrCluster,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(volcAsrCluster = it)
-                        hasChanges = true
-                    },
-                    label = "ASR Cluster"
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
             // 设备连接
-            ConfigSection(title = "设备连接") {
-                ConfigTextField(
-                    value = editedConfig.deviceIp,
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(deviceIp = it)
-                        hasChanges = true
-                    },
-                    label = "设备IP地址",
-                    placeholder = "192.168.1.100"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ConfigTextField(
-                    value = editedConfig.devicePort.toString(),
-                    onValueChange = {
-                        editedConfig = editedConfig.copy(devicePort = it.toIntOrNull() ?: 8080)
-                        hasChanges = true
-                    },
-                    label = "端口",
-                    placeholder = "8080"
-                )
+            ConfigSection("设备连接") {
+                ConfigTextField(edited.deviceIp, { edited = edited.copy(deviceIp = it); hasChanges = true }, "设备IP地址", placeholder = "192.168.x.x")
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.devicePort.toString(), { edited = edited.copy(devicePort = it.toIntOrNull() ?: 28789); hasChanges = true }, "端口")
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // 同步结果提示
+
+            Spacer(Modifier.height(16.dp))
+
+            // LLM
+            ConfigSection("LLM 配置") {
+                ConfigTextField(edited.llmApiKey, { edited = edited.copy(llmApiKey = it); hasChanges = true }, "API Key", isPassword = true)
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.llmModel, { edited = edited.copy(llmModel = it); hasChanges = true }, "模型")
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.llmHost, { edited = edited.copy(llmHost = it); hasChanges = true }, "LLM Host")
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.llmPath, { edited = edited.copy(llmPath = it); hasChanges = true }, "LLM Path")
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 搜索
+            ConfigSection("Tavily 搜索") {
+                ConfigTextField(edited.tavilyKey, { edited = edited.copy(tavilyKey = it); hasChanges = true }, "Tavily API Key", isPassword = true)
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 火山引擎 ASR/TTS
+            ConfigSection("火山引擎 ASR/TTS") {
+                ConfigTextField(edited.volcAppKey, { edited = edited.copy(volcAppKey = it); hasChanges = true }, "AppKey")
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.volcToken, { edited = edited.copy(volcToken = it); hasChanges = true }, "Token", isPassword = true)
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.volcApiKey, { edited = edited.copy(volcApiKey = it); hasChanges = true }, "API Key", isPassword = true)
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.volcCluster, { edited = edited.copy(volcCluster = it); hasChanges = true }, "TTS Cluster")
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.volcAsrCluster, { edited = edited.copy(volcAsrCluster = it); hasChanges = true }, "ASR Cluster")
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 代理
+            ConfigSection("HTTP 代理") {
+                ConfigTextField(edited.proxyHost, { edited = edited.copy(proxyHost = it); hasChanges = true }, "代理 Host")
+                Spacer(Modifier.height(8.dp))
+                ConfigTextField(edited.proxyPort, { edited = edited.copy(proxyPort = it); hasChanges = true }, "代理 Port")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // 同步结果
             syncResult?.let { result ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -194,81 +127,45 @@ fun ConfigScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
             }
-            
+
             // 操作按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { viewModel.syncFromDevice() },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isLoading
-                ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { viewModel.syncFromDevice() }, Modifier.weight(1f), enabled = !isLoading) {
                     Text("从设备拉取")
                 }
-                Button(
-                    onClick = { viewModel.syncToDevice() },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isLoading
-                ) {
-                    Text("同步到设备")
+                Button(onClick = {
+                    viewModel.saveConfig(edited)
+                    viewModel.syncToDevice(edited)
+                }, Modifier.weight(1f), enabled = !isLoading) {
+                    Text("保存并推送")
                 }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // 保存按钮
-            Button(
-                onClick = { viewModel.saveConfig(editedConfig) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = hasChanges && !isLoading
-            ) {
-                Text("保存配置到本地")
-            }
-            
+
             if (isLoading) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Spacer(Modifier.height(16.dp))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
+
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
 
-/**
- * 配置分组
- */
 @Composable
-private fun ConfigSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+private fun ConfigSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(12.dp))
             content()
         }
     }
 }
 
-/**
- * 配置文本输入框
- */
 @Composable
 private fun ConfigTextField(
     value: String,
@@ -284,9 +181,7 @@ private fun ConfigTextField(
         placeholder = if (placeholder.isNotEmpty()) {{ Text(placeholder) }} else null,
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else 
-            VisualTransformation.None,
-        keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) 
-            else KeyboardOptions.Default
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default
     )
 }

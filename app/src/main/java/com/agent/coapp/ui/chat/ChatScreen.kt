@@ -2,11 +2,13 @@ package com.agent.coapp.ui.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.agent.coapp.data.ChatMessage
@@ -195,7 +199,11 @@ fun ChatScreen(
  * 消息气泡
  */
 @Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 private fun ChatBubble(chatMessage: ChatMessage) {
+    val clipboardManager = LocalClipboardManager.current
+    var showCopied by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (chatMessage.isFromUser) Arrangement.End else Arrangement.Start
@@ -224,12 +232,31 @@ private fun ChatBubble(chatMessage: ChatMessage) {
                         )
                     ) else Modifier
                 )
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        clipboardManager.setText(AnnotatedString(chatMessage.content))
+                        showCopied = true
+                    }
+                )
                 .padding(12.dp)
         ) {
-            Text(
-                text = chatMessage.content,
-                color = TextPrimary
-            )
+            Column {
+                SelectionContainer {
+                    Text(
+                        text = chatMessage.content,
+                        color = TextPrimary
+                    )
+                }
+                if (showCopied) {
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(1500)
+                        showCopied = false
+                    }
+                    Text("已复制", style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary)
+                }
+            }
         }
     }
 }
@@ -265,9 +292,9 @@ private fun ConnectionIndicator(
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = if (statusMessage.isNotEmpty()) statusMessage else text,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
-            modifier = Modifier.widthIn(max = 100.dp),
+            modifier = Modifier.widthIn(max = 160.dp),
             color = TextSecondary
         )
     }

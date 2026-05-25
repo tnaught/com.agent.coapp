@@ -83,6 +83,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             deviceRepository.getWebSocketState().collect { state ->
                 _connectionState.value = state
+                if (state == WebSocketState.CONNECTED) {
+                    _statusMessage.value = ""
+                }
             }
         }
         

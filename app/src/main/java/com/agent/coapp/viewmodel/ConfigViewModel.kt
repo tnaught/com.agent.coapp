@@ -13,23 +13,21 @@ import kotlinx.coroutines.launch
 
 /**
  * 配置ViewModel
+ * 同步策略：手表是 source of truth，手机默认配置是补丁
  */
 class ConfigViewModel(application: Application) : AndroidViewModel(application) {
-    
+
     private val configRepository = ConfigRepository(application)
     private val deviceRepository = DeviceRepository()
-    
+
     val configFlow: StateFlow<AgentConfig> = MutableStateFlow(AgentConfig())
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
-    
-    private val _message = MutableStateFlow("")
-    val message: StateFlow<String> = _message
-    
+
     private val _syncResult = MutableStateFlow<SyncResult?>(null)
     val syncResult: StateFlow<SyncResult?> = _syncResult
-    
+
     init {
         viewModelScope.launch {
             configRepository.configFlow.collect { config ->
@@ -37,96 +35,112 @@ class ConfigViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
-    
-    /**
-     * 保存配置到本地
-     */
+
     fun saveConfig(config: AgentConfig) {
-        viewModelScope.launch {
-            configRepository.saveConfig(config)
-        }
+        viewModelScope.launch { configRepository.saveConfig(config) }
     }
-    
+
     /**
-     * 从设备同步配置
+     * 从手表拉配置 → 合并默认值 → 保存本地
      */
     fun syncFromDevice() {
         viewModelScope.launch {
             _isLoading.value = true
-            val config = configRepository.configFlow.first()
-            
-            if (config.deviceIp.isEmpty()) {
-                _message.value = "请先配置设备IP地址"
+            val local = configRepository.configFlow.first()
+
+            if (local.deviceIp.isEmpty()) {
+                _syncResult.value = SyncResult.Error("请先配置设备IP地址")
                 _isLoading.value = false
                 return@launch
             }
-            
-            val result = deviceRepository.getConfig(config.deviceIp, config.devicePort)
-            result.onSuccess { response ->
-                val updatedConfig = config.copy(
-                    llmApiKey = response.llm_api_key ?: config.llmApiKey,
-                    llmBaseUrl = response.llm_base_url ?: config.llmBaseUrl,
-                    llmModel = response.llm_model ?: config.llmModel,
-                    tavilyKey = response.search_api_key ?: config.tavilyKey,
-                    volcKey = response.asr_api_key ?: config.volcKey,
-                    volcAsrToken = response.tts_api_key ?: config.volcAsrToken
+
+            val defaults = configRepository.loadDefaultConfig()
+            val result = deviceRepository.getConfig(local.deviceIp, local.devicePort)
+
+            result.onSuccess { watchMap ->
+                val merged = AgentConfig.fromDeviceMap(
+                    deviceMap = watchMap,
+                    defaults = defaults,
+                    localIp = local.deviceIp,
+                    localPort = local.devicePort
                 )
-                configRepository.saveConfig(updatedConfig)
+                configRepository.saveConfig(merged)
                 _syncResult.value = SyncResult.Success("配置已从设备同步")
-            }.onFailure { error ->
-                _syncResult.value = SyncResult.Error("同步失败: ${error.message}")
+            }.onFailure {
+                // 离线时用本地 + 默认值填充空字段
+                val merged = AgentConfig.fromDeviceMap(
+                    deviceMap = local.toDeviceMap(),
+                    defaults = defaults,
+                    localIp = local.deviceIp,
+                    localPort = local.devicePort
+                )
+                configRepository.saveConfig(merged)
+                _syncResult.value = SyncResult.Error("设备离线，使用本地配置")
             }
-            
+
             _isLoading.value = false
         }
     }
-    
+
     /**
-     * 同步配置到设备
+     * 推送配置到手表（PUT /api/config）— 用当前编辑值
      */
-    fun syncToDevice() {
+    fun syncToDevice(editedConfig: AgentConfig) {
         viewModelScope.launch {
             _isLoading.value = true
-            val config = configRepository.configFlow.first()
-            
-            if (config.deviceIp.isEmpty()) {
-                _message.value = "请先配置设备IP地址"
+            configRepository.saveConfig(editedConfig)
+
+            if (editedConfig.deviceIp.isEmpty()) {
+                _syncResult.value = SyncResult.Error("请先配置设备IP地址")
                 _isLoading.value = false
                 return@launch
             }
-            
+
             val result = deviceRepository.updateConfig(
-                deviceIp = config.deviceIp,
-                port = config.devicePort,
-                llmApiKey = config.llmApiKey,
-                llmBaseUrl = config.llmBaseUrl,
-                llmModel = config.llmModel,
-                searchApiKey = config.tavilyKey,
-                asrApiKey = config.volcKey,
-                ttsApiKey = config.volcAsrToken
+                editedConfig.deviceIp, editedConfig.devicePort, editedConfig.toDeviceMap()
             )
-            
+
             result.onSuccess {
                 _syncResult.value = SyncResult.Success("配置已同步到设备")
             }.onFailure { error ->
                 _syncResult.value = SyncResult.Error("同步失败: ${error.message}")
             }
-            
+
             _isLoading.value = false
         }
     }
-    
+
     /**
-     * 清除同步结果
+     * 推送配置到手表（PUT /api/config）— 用本地已保存值
      */
-    fun clearSyncResult() {
-        _syncResult.value = null
+    fun syncToDevice() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val config = configRepository.configFlow.first()
+
+            if (config.deviceIp.isEmpty()) {
+                _syncResult.value = SyncResult.Error("请先配置设备IP地址")
+                _isLoading.value = false
+                return@launch
+            }
+
+            val result = deviceRepository.updateConfig(
+                config.deviceIp, config.devicePort, config.toDeviceMap()
+            )
+
+            result.onSuccess {
+                _syncResult.value = SyncResult.Success("配置已同步到设备")
+            }.onFailure { error ->
+                _syncResult.value = SyncResult.Error("同步失败: ${error.message}")
+            }
+
+            _isLoading.value = false
+        }
     }
+
+    fun clearSyncResult() { _syncResult.value = null }
 }
 
-/**
- * 同步结果
- */
 sealed class SyncResult {
     data class Success(val message: String) : SyncResult()
     data class Error(val message: String) : SyncResult()

@@ -124,11 +124,13 @@ fun LogsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
+                    val horizontalScrollState = rememberScrollState()
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF1E1E1E)) // 深色背景
+                            .background(Color(0xFF1E1E1E))
+                            .horizontalScroll(horizontalScrollState)
                             .padding(8.dp)
                     ) {
                         items(logs) { log ->
@@ -146,16 +148,14 @@ fun LogsScreen(
  */
 @Composable
 private fun LogLine(log: String) {
-    // 使用等宽字体，深色背景样式
     Text(
         text = log,
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(vertical = 2.dp),
+        modifier = Modifier.padding(vertical = 2.dp),
         fontFamily = FontFamily.Monospace,
         fontSize = 12.sp,
-        color = getLogColor(log)
+        color = getLogColor(log),
+        maxLines = 1,
+        softWrap = false
     )
 }
 
