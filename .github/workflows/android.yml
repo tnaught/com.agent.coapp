@@ -102,6 +102,7 @@ jobs:
             sleep 5
 
             echo "=== Take screenshot ==="
+            mkdir -p screenshots
             adb shell screencap -p /sdcard/launch-screen.png
             adb pull /sdcard/launch-screen.png screenshots/launch-screen.png
 
