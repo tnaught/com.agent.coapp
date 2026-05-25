@@ -101,42 +101,14 @@ jobs:
             echo "=== Wait for UI ==="
             sleep 5
 
-            echo "=== Take screenshot ==="
+            echo "=== Take screenshots ==="
             mkdir -p screenshots
             adb shell screencap -p /sdcard/screenshot.png
             adb pull /sdcard/screenshot.png screenshots/01-provisioning.png
-
-            # Get screen size and calculate tab positions
-            SCREEN=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+')
-            W=$(echo $SCREEN | cut -dx -f1)
-            H=$(echo $SCREEN | cut -dx -f2)
-            NY=$((H - 50))
-            TW=$((W / 5))
-            echo "Screen: ${W}x${H}, NavY: $NY, TabWidth: $TW"
-
-            echo "=== Config tab ==="
-            adb shell input tap $((TW * 1 + TW / 2)) $NY
-            sleep 3
-            adb shell screencap -p /sdcard/screenshot.png
-            adb pull /sdcard/screenshot.png screenshots/02-config.png
-
-            echo "=== Skills tab ==="
-            adb shell input tap $((TW * 2 + TW / 2)) $NY
-            sleep 3
-            adb shell screencap -p /sdcard/screenshot.png
-            adb pull /sdcard/screenshot.png screenshots/03-skills.png
-
-            echo "=== Logs tab ==="
-            adb shell input tap $((TW * 3 + TW / 2)) $NY
-            sleep 3
-            adb shell screencap -p /sdcard/screenshot.png
-            adb pull /sdcard/screenshot.png screenshots/04-logs.png
-
-            echo "=== Chat tab ==="
-            adb shell input tap $((TW * 4 + TW / 2)) $NY
-            sleep 3
-            adb shell screencap -p /sdcard/screenshot.png
-            adb pull /sdcard/screenshot.png screenshots/05-chat.png
+            adb shell input tap 324 2280 && sleep 3 && adb shell screencap -p /sdcard/screenshot.png && adb pull /sdcard/screenshot.png screenshots/02-config.png
+            adb shell input tap 540 2280 && sleep 3 && adb shell screencap -p /sdcard/screenshot.png && adb pull /sdcard/screenshot.png screenshots/03-skills.png
+            adb shell input tap 756 2280 && sleep 3 && adb shell screencap -p /sdcard/screenshot.png && adb pull /sdcard/screenshot.png screenshots/04-logs.png
+            adb shell input tap 972 2280 && sleep 3 && adb shell screencap -p /sdcard/screenshot.png && adb pull /sdcard/screenshot.png screenshots/05-chat.png
 
       - name: Upload Screenshots
         if: always()
