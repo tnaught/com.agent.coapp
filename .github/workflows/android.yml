@@ -106,48 +106,34 @@ jobs:
             adb shell screencap -p /sdcard/screenshot.png
             adb pull /sdcard/screenshot.png screenshots/01-provisioning.png
 
-            echo "=== Switch to Config tab ==="
-            adb shell "am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS"
-            adb shell input keyevent KEYCODE_BACK || true
-            sleep 1
-            adb shell "uiautomator dump /sdcard/ui.xml" && adb pull /sdcard/ui.xml /tmp/ui.xml || true
-            # Click tabs by finding bottom nav text
-            adb shell "input tap $(adb shell uiautomator dump /dev/tty | cat /dev/null; adb shell 'dumpsys window displays | grep -o \"cur=[0-9]*x[0-9]*\"' | head -1)" || true
-            
-            # Use am start with extras to navigate - more reliable
-            adb shell am start -n com.agent.coapp/.MainActivity -W
-            sleep 2
-
-            # Get screen dimensions
+            # Get screen size and calculate tab positions
             SCREEN=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+')
-            WIDTH=$(echo $SCREEN | cut -dx -f1)
-            HEIGHT=$(echo $SCREEN | cut -dx -f2)
-            NAV_Y=$((HEIGHT - 50))
-            TAB_W=$((WIDTH / 5))
+            W=$(echo $SCREEN | cut -dx -f1)
+            H=$(echo $SCREEN | cut -dx -f2)
+            NY=$((H - 50))
+            TW=$((W / 5))
+            echo "Screen: ${W}x${H}, NavY: $NY, TabWidth: $TW"
 
-            echo "Screen: ${WIDTH}x${HEIGHT}, NavY: $NAV_Y, TabW: $TAB_W"
-
-            # Tab 1 already captured. Now tap others:
             echo "=== Config tab ==="
-            adb shell input tap $((TAB_W * 1 + TAB_W / 2)) $NAV_Y
+            adb shell input tap $((TW * 1 + TW / 2)) $NY
             sleep 3
             adb shell screencap -p /sdcard/screenshot.png
             adb pull /sdcard/screenshot.png screenshots/02-config.png
 
             echo "=== Skills tab ==="
-            adb shell input tap $((TAB_W * 2 + TAB_W / 2)) $NAV_Y
+            adb shell input tap $((TW * 2 + TW / 2)) $NY
             sleep 3
             adb shell screencap -p /sdcard/screenshot.png
             adb pull /sdcard/screenshot.png screenshots/03-skills.png
 
             echo "=== Logs tab ==="
-            adb shell input tap $((TAB_W * 3 + TAB_W / 2)) $NAV_Y
+            adb shell input tap $((TW * 3 + TW / 2)) $NY
             sleep 3
             adb shell screencap -p /sdcard/screenshot.png
             adb pull /sdcard/screenshot.png screenshots/04-logs.png
 
             echo "=== Chat tab ==="
-            adb shell input tap $((TAB_W * 4 + TAB_W / 2)) $NAV_Y
+            adb shell input tap $((TW * 4 + TW / 2)) $NY
             sleep 3
             adb shell screencap -p /sdcard/screenshot.png
             adb pull /sdcard/screenshot.png screenshots/05-chat.png
