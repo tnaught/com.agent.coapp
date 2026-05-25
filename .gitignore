@@ -41,4 +41,5 @@ obj/
 Thumbs.db
 
 # Local config with real keys (not committed)
-app/src/main/assets/default_config.json.claude/
+app/src/main/assets/default_config.json
+.claude/
