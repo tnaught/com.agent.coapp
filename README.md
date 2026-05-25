@@ -10,6 +10,20 @@ OpenVela AI Agent 的 Android 配套 App，用于管理、配置和对话 Agent 
 - **实时对话** — WebSocket 连接 Agent 设备进行对话
 - **设备日志** — 查看设备端运行日志
 
+## 📱 Screenshots
+
+### BLE 配网 & 配置
+
+| 配网 | 配置 |
+|:---:|:---:|
+| <img src="docs/screenshots/pairing.jpg" width="200" alt="配网页"/> | <img src="docs/screenshots/config.jpg" width="200" alt="配置页"/> |
+
+### 技能 & 日志 & 对话
+
+| 技能 | 日志 | 对话 |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/skills.jpg" width="200" alt="技能页"/> | <img src="docs/screenshots/logs.jpg" width="200" alt="日志页"/> | <img src="docs/screenshots/chat.jpg" width="200" alt="对话页"/> |
+
 ## 技术栈
 
 - Kotlin + Jetpack Compose + Material 3
